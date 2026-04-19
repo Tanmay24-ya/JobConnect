@@ -1,12 +1,20 @@
-import { generateText } from "ai";
-import { google } from "@ai-sdk/google";
+// import { generateText } from "ai";
+// import { google } from "@ai-sdk/google";
+import OpenAI from "openai";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/firebase/admin";
-import pdf from "pdf-parse";
+// import pdf from "pdf-parse";
+import pdf from "@/lib/pdf-parse-fix";
 import crypto from "crypto";
 
-if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    throw new Error("Google API key is missing.");
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENROUTER_API_KEY,
+    baseURL: "https://openrouter.ai/api/v1",
+});
+
+if (!process.env.OPENROUTER_API_KEY) {
+    throw new Error("OpenRouter API key is missing.");
 }
 
 function generateHash(resume: string, job: string): string {
@@ -77,12 +85,12 @@ Resume: ${resumeText}
 Job Description: ${jobDescriptionText}
 `;
 
-        const { text: geminiResponse } = await generateText({
-            model: google("gemini-2.0-flash-001", {
-                apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-            }),
-            prompt,
+        const completion = await openai.chat.completions.create({
+            model: "openai/gpt-3.5-turbo",
+            messages: [{ role: "user", content: prompt }],
         });
+
+        const geminiResponse = completion.choices[0].message.content || "";
 
         const cleanResponse = geminiResponse
             .replace(/```json/g, "")

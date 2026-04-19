@@ -6,6 +6,7 @@ import InterviewCard from "@/components/InterviewCard";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/actions/auth.actions";
 import { getInterviewsByUserId, getLatestInterviews } from "@/lib/actions/general.action";
+import Spline from '@splinetool/react-spline/next';
 
 const Page = async () => {
     const user = await getCurrentUser()
@@ -37,6 +38,10 @@ const Page = async () => {
 
                 {/* Image */}
                 <div className="w-full flex justify-center md:justify-end hidden md:flex">
+                    {/*<Spline*/}
+                    {/*    className="absolute xl:right-[-32%] right-0 top-[-20%] lg:top-0"*/}
+                    {/*    scene="https://prod.spline.design/6olquMi9-OtLw0Uv/scene.splinecode"*/}
+                    {/*/>*/}
                     <Image
                         src="/img.png"
                         alt="AI orb"
@@ -62,6 +67,13 @@ const Page = async () => {
                             asChild
                             className="btn-primary px-4 py-2 text-xs sm:text-sm md:text-base font-semibold flex-shrink-0 min-w-[160px]"
                         >
+                            <Link href="/resume-interview">Resume Interview</Link>
+                        </Button>
+
+                        <Button
+                            asChild
+                            className="btn-primary px-4 py-2 text-xs sm:text-sm md:text-base font-semibold flex-shrink-0 min-w-[160px]"
+                        >
                             <Link href="/interview">AI Mock Interviews</Link>
                         </Button>
 
@@ -74,7 +86,7 @@ const Page = async () => {
 
                         <Button
                             asChild
-                            className="btn-primary px-4 py-2 text-xs sm:text-sm md:text-base font-semibold flex-shrink-0 min-w-[180px]"
+                            className="btn-primary px-4 py-2 text-xs sm:text-sm md:text-base font-semibold flex-shrink-0 min-w-[160px]"
                         >
                             <Link href="/analytics">Performance Analytics</Link>
                         </Button>
@@ -85,7 +97,12 @@ const Page = async () => {
                         >
                             <Link href="/resources">Learning Resources</Link>
                         </Button>
+
                     </div>
+                    {/*<Spline*/}
+                    {/*    className="absolute xl:right-[-32%] right-0 top-[-20%] translate-x-10 lg:top-0"*/}
+                    {/*    scene="https://prod.spline.design/2XecYPdbY0GQV8fe/scene.splinecode"*/}
+                    {/*/>*/}
                 </div>
 
             </section>
@@ -107,7 +124,7 @@ const Page = async () => {
                                 </div>
                             ))
                         ) : (
-                            <p className="text-gray-400">You haven't taken any interviews yet</p>
+                            <p className="text-gray-400">You have not taken any interviews yet.</p>
                         )}
                     </div>
                 </div>
@@ -129,13 +146,11 @@ const Page = async () => {
                                 </div>
                             ))
                         ) : (
-                            <p className="text-gray-400">There are no new Interviews available</p>
+                            <p className="text-gray-400">There are no new Interviews available.</p>
                         )}
                     </div>
                 </div>
             </section>
-
-
 
         </>
 

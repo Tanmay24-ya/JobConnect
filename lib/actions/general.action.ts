@@ -1,10 +1,16 @@
 "use server";
 
 import {db} from "@/firebase/admin";
-import {generateObject} from "ai";
+// import {generateObject} from "ai";
 import {feedbackSchema} from "@/constants";
-import {google} from "@ai-sdk/google";
+// import {google} from "@ai-sdk/google";
+import OpenAI from "openai";
 import { DocumentReference } from "firebase-admin/firestore";
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENROUTER_API_KEY,
+    baseURL: "https://openrouter.ai/api/v1",
+});
 
 export async function getInterviewsByUserId(userId: string): Promise<Interview[] | null> {
     const interviews = await db
@@ -51,37 +57,65 @@ export async function createFeedback(params: CreateFeedbackParams){
     const {interviewId, userId, transcript} = params;
 
     try{
-        const formattedTranscript =transcript
+        const formattedTranscript = transcript
             .map(
-                (sentence: {role:string; content:string})=>
+                (sentence: {role:string; content:string}) =>
                     `- ${sentence.role}: ${sentence.content}\n`
-                )
-                    .join("");
+            )
+            .join("");
 
-        const { object } = await generateObject({
-            model: google("gemini-2.0-flash-001", {
-                structuredOutputs: false,
-            }),
+        const prompt = `You are an AI interviewer analyzing a mock interview. Your task is to evaluate the candidate based on structured categories. Be thorough and detailed in your analysis. Don't be lenient with the candidate. If there are mistakes or areas for improvement, point them out.
+Transcript:
+${formattedTranscript}
 
-            schema: feedbackSchema,
-            prompt: `You are an AI interviewer analyzing a mock interview. Your task is to evaluate the candidate based on structured categories. Be thorough and detailed in your analysis. Don't be lenient with the candidate. If there are mistakes or areas for improvement, point them out.
-        Transcript:
-        ${formattedTranscript}
+Please score the candidate from 0 to 100 in the following areas. Do not add categories other than the ones provided:
+- **Communication Skills**: Clarity, articulation, structured responses.
+- **Technical Knowledge**: Understanding of key concepts for the role.
+- **Problem-Solving**: Ability to analyze problems and propose solutions.
+- **Cultural & Role Fit**: Alignment with company values and job role.
+- **Confidence & Clarity**: Confidence in responses, engagement, and clarity.
 
-        Please score the candidate from 0 to 100 in the following areas. Do not add categories other than the ones provided:
-        - **Communication Skills**: Clarity, articulation, structured responses.
-        - **Technical Knowledge**: Understanding of key concepts for the role.
-        - **Problem-Solving**: Ability to analyze problems and propose solutions.
-        - **Cultural & Role Fit**: Alignment with company values and job role.
-        - **Confidence & Clarity**: Confidence in responses, engagement, and clarity.
-        `,
-            system:
-                "You are a professional interviewer analyzing a mock interview. Your task is to evaluate the candidate based on structured categories",
+Return STRICT JSON in this format:
+{
+  "totalScore": number,
+  "categoryScores": {
+    "communication": number,
+    "technical": number,
+    "problemSolving": number,
+    "culturalFit": number,
+    "confidence": number
+  },
+  "strengths": string[],
+  "areasForImprovement": string[],
+  "finalAssessment": string
+}
+`;
+
+        const completion = await openai.chat.completions.create({
+            model: "openai/gpt-4o-mini",
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a professional interviewer analyzing a mock interview. Return only valid JSON.",
+                },
+                {
+                    role: "user",
+                    content: prompt,
+                },
+            ],
         });
 
+        const raw = completion.choices?.[0]?.message?.content || "{}";
 
+        let object;
+        try {
+            object = JSON.parse(raw);
+        } catch (e) {
+            console.error("JSON parse error:", raw);
+            throw new Error("Invalid JSON from AI");
+        }
 
-// Create and add the document to Firestore
+        // Store in Firestore
         const feedbackDoc: DocumentReference = await db.collection("feedback").add({
             interviewId,
             userId,
